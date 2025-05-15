@@ -59,65 +59,67 @@
     </div>
 
     <audio id="media" src="CMJ - 星星在唱歌（纯音乐）.mp3" loop></audio>
-    <div id="musicControl" style="position: fixed; top: 10px; right: 10px; z-index: 999; cursor: pointer;">
-        <img id="musicIcon" src="data:image/svg+xml;base64,PHN2ZyB0PSIxNjk5OTU4NTI4MDY3IiBjbGFzcz0iaWNvbiIgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHAtaWQ9IjYwNjEiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiI+PHBhdGggZD0iTTUxMiAxMDI0QzIyOS4yMjMgMTAyNCAwIDc5NC43NzcgMCA1MTJTMjI5LjIyMyAwIDUxMiAwczUxMiAyMjkuMjIzIDUxMiA1MTItMjI5LjIyMyA1MTItNTEyIDUxMnogbTAtOTMwLjkwOUMyODAuMjc3IDkzLjA5MSA5My4wOTEgMjgwLjI3NyA5My4wOTEgNTEyUzI4MC4yNzcgOTMwLjkwOSA1MTIgOTMwLjkwOSA5MzAuOTA5IDc0My43MjMgOTMwLjkwOSA1MTIgNzQzLjcyMyA5My4wOTEgNTEyIDkzLjA5MXoiIGZpbGw9IiNmZmZmZmYiIHAtaWQ9IjYwNjIiPjwvcGF0aD48cGF0aCBkPSJNNDY1LjQ1NSAzMjUuODE4YzAtMjUuNiAyMC45NDUtNDYuNTQ1IDQ2LjU0NS00Ni41NDVzNDYuNTQ1IDIwLjk0NSA0Ni41NDUgNDYuNTQ1djM3Mi4zNjRjMCAyNS42LTIwLjk0NSA0Ni41NDUtNDYuNTQ1IDQ2LjU0NXMtNDYuNTQ1LTIwLjk0NS00Ni41NDUtNDYuNTQ1VjMyNS44MTh6TTMyNS44MTggNDY1LjQ1NWMtMjUuNiAwLTQ2LjU0NSAyMC45NDUtNDYuNTQ1IDQ2LjU0NXMyMC45NDUgNDYuNTQ1IDQ2LjU0NSA0Ni41NDVoMzcyLjM2NGMyNS42IDAgNDYuNTQ1LTIwLjk0NSA0Ni41NDUtNDYuNTQ1cy0yMC45NDUtNDYuNTQ1LTQ2LjU0NS00Ni41NDVIMTI1LjgxOHoiIGZpbGw9IiNmZmZmZmYiIHAtaWQ9IjYwNjMiPjwvcGF0aD48L3N2Zz4=" style="width: 32px; height: 32px; animation: rotate 3s linear infinite;" />
-    </div>
-
-    <style>
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        #musicIcon.paused {
-            animation-play-state: paused;
-        }
-    </style>
-
+    
     <script>
         // 音乐控制相关代码
         document.addEventListener('DOMContentLoaded', function() {
             var audio = document.getElementById('media');
-            var musicIcon = document.getElementById('musicIcon');
-            var musicControl = document.getElementById('musicControl');
             
             // 检测是否是微信浏览器
             function isWechat() {
                 var ua = navigator.userAgent.toLowerCase();
                 return ua.match(/MicroMessenger/i) == "micromessenger";
             }
-
-            // 音乐播放状态控制
-            function toggleMusic() {
-                if (audio.paused) {
-                    audio.play().then(() => {
-                        musicIcon.classList.remove('paused');
-                    }).catch(err => {
-                        console.log('播放失败:', err);
-                    });
-                } else {
-                    audio.pause();
-                    musicIcon.classList.add('paused');
-                }
-            }
-
-            // 点击图标控制音乐播放
-            musicControl.addEventListener('click', toggleMusic);
-
-            // 监听音频播放状态
-            audio.addEventListener('play', function() {
-                musicIcon.classList.remove('paused');
-            });
-
-            audio.addEventListener('pause', function() {
-                musicIcon.classList.add('paused');
-            });
-
-            // 如果不是微信浏览器，尝试自动播放
-            if (!isWechat()) {
-                audio.play().catch(function(err) {
+            
+            // 确保音频循环播放
+            audio.loop = true;
+            
+            // 监听音频结束事件，确保循环播放
+            audio.addEventListener('ended', function() {
+                this.currentTime = 0;
+                this.play();
+            }, false);
+            
+            // 尝试自动播放音乐
+            function attemptAutoplay() {
+                // 尝试播放
+                audio.play().then(function() {
+                    console.log('自动播放成功');
+                }).catch(function(err) {
                     console.log('自动播放失败:', err);
+                    
+                    // 如果自动播放失败，尝试使用微信JSSDK（如果在微信中）
+                    if (isWechat() && typeof WeixinJSBridge !== 'undefined') {
+                        WeixinJSBridge.invoke('getNetworkType', {}, function(e) {
+                            audio.play();
+                        });
+                    } else {
+                        // 创建一个一次性的触摸事件监听器
+                        document.addEventListener('touchstart', function playOnTouch() {
+                            audio.play();
+                            document.removeEventListener('touchstart', playOnTouch);
+                        }, { once: true });
+                    }
                 });
             }
+            
+            // 监听WeixinJSBridge准备就绪
+            if (isWechat()) {
+                if (typeof WeixinJSBridge === 'undefined') {
+                    document.addEventListener('WeixinJSBridgeReady', attemptAutoplay, false);
+                } else {
+                    attemptAutoplay();
+                }
+            } else {
+                attemptAutoplay();
+            }
+            
+            // 添加页面可见性变化监听，解决页面切换后音乐停止的问题
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden && !audio.paused) {
+                    audio.play();
+                }
+            });
         });
 
         (function () {
@@ -184,6 +186,12 @@
                     canvas.unbind("click");
                     canvas.unbind("mousemove");
                     canvas.removeClass('hand');
+                    
+                    // 点击信封后播放背景音乐
+                    var audio = document.getElementById('media');
+                    audio.play().catch(function(err) {
+                        console.log('播放失败:', err);
+                    });
                 }
             }).mousemove(function (e) {
                 var offset = canvas.offset(), x, y;
