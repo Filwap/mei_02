@@ -31,7 +31,7 @@ $(window).resize(function() {
 				if (progress >= str.length) {
 					clearInterval(timer);
 				}
-			}, 75);
+			}, 40); // 加快打字速度，从75ms改为40ms
 		});
 		return this;
 	};
