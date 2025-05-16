@@ -2,10 +2,70 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>赠与bb🐷的一封情书</title>
     <link rel="icon" type="image/x-icon" href="https://i.loli.net/2021/06/03/lFg2V4WUcmkB98G.png">
     <meta name="language" content="zh-CN">
     <meta name="title" content="小梅同学">
+    <style>
+        @media screen and (max-width: 428px) {
+            #main {
+                width: 100% !important;
+                height: 100vh !important;
+                overflow: hidden;
+            }
+            #wrap {
+                width: 100% !important;
+                height: 100vh !important;
+                margin-top: 0 !important;
+            }
+            #text {
+                width: 90% !important;
+                height: auto !important;
+                left: 5% !important;
+                top: 50px !important;
+                z-index: 2;
+            }
+            #code {
+                font-size: 18px !important;
+                line-height: 1.6 !important;
+                background: rgba(255, 255, 255, 0.85) !important;
+                padding: 20px !important;
+                border-radius: 15px !important;
+            }
+            .say {
+                font-size: 20px !important;
+                margin-bottom: 10px !important;
+                display: block !important;
+            }
+            #clock-box {
+                width: 90% !important;
+                left: 5% !important;
+                bottom: 30px !important;
+                top: auto !important;
+                font-size: 16px !important;
+                background: rgba(255, 255, 255, 0.85) !important;
+                padding: 15px !important;
+                border-radius: 15px !important;
+                text-align: center !important;
+            }
+            #clock {
+                margin-left: 0 !important;
+                font-size: 24px !important;
+            }
+            #canvas {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                z-index: 1 !important;
+            }
+            .space {
+                margin-right: 0 !important;
+            }
+        }
+    </style>
     <link type="text/css" rel="stylesheet" href="./Love_files/default.css">
     <script type="text/javascript" src="./Love_files/jquery.min.js"></script>
     <script type="text/javascript" src="./Love_files/jscex.min.js"></script>
@@ -58,12 +118,53 @@
 
     </div>
 
-    <audio id="media" src="CMJ - 星星在唱歌（纯音乐）.mp3" loop></audio>
+    <!-- 音频将通过JavaScript动态加载 -->
+    <audio id="media" loop></audio>
+    
+    <div id="loading" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+         background: rgba(255, 255, 255, 0.9); padding: 20px; border-radius: 10px; 
+         text-align: center; display: none; z-index: 999;">
+        加载中... <span id="progress">0</span>%
+    </div>
     
     <script>
         // 音乐控制相关代码
         document.addEventListener('DOMContentLoaded', function() {
             var audio = document.getElementById('media');
+            var loadingDiv = document.getElementById('loading');
+            var progressSpan = document.getElementById('progress');
+            
+            // 延迟加载音频
+            function loadAudio() {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'CMJ - 星星在唱歌（纯音乐）.mp3', true);
+                xhr.responseType = 'blob';
+                
+                xhr.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        var percentComplete = Math.round((e.loaded / e.total) * 100);
+                        progressSpan.textContent = percentComplete;
+                    }
+                };
+                
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        var blob = xhr.response;
+                        var url = URL.createObjectURL(blob);
+                        audio.src = url;
+                        loadingDiv.style.display = 'none';
+                    }
+                };
+                
+                xhr.send();
+            }
+            
+            // 当用户点击页面时加载音频
+            document.addEventListener('click', function loadOnFirstClick() {
+                loadingDiv.style.display = 'block';
+                loadAudio();
+                document.removeEventListener('click', loadOnFirstClick);
+            }, { once: true });
             
             // 检测是否是微信浏览器
             function isWechat() {
@@ -130,45 +231,97 @@
                 return false;
             }
 
-            var width = canvas.width();
-            var height = canvas.height();
-
+            // 根据设备调整画布大小
+            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            var width = isMobile ? window.innerWidth : canvas.width();
+            var height = isMobile ? window.innerHeight : canvas.height();
+            
+            // 设置画布尺寸
             canvas.attr("width", width);
             canvas.attr("height", height);
+            
+            // 监听窗口大小变化
+            $(window).resize(function() {
+                if(isMobile) {
+                    canvas.attr("width", window.innerWidth);
+                    canvas.attr("height", window.innerHeight);
+                }
+            });
+
+            // 检测是否为移动设备
+            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            // 计算缩放比例
+            var scale = isMobile ? 0.6 : 1;
+            var centerX = width / 2;
+            var bottomY = height - height * 0.1;
 
             var opts = {
                 seed: {
-                    x: width / 2 - 20,
+                    x: centerX,
                     color: "rgb(190, 26, 37)",
-                    scale: 2
+                    scale: 2 * scale
                 },
                 branch: [
-                    [535, 680, 570, 250, 500, 200, 30, 100, [
-                        [540, 500, 455, 417, 340, 400, 13, 100, [
-                            [450, 435, 434, 430, 394, 395, 2, 40]
+                    // 使用相对位置计算，适应不同屏幕大小
+                    [centerX + 35 * scale, height - 20, 
+                     centerX + 70 * scale, height/3, 
+                     centerX, height/4, 
+                     30 * scale, 100, [
+                        [centerX + 40 * scale, height/1.5, 
+                         centerX - 45 * scale, height/1.8, 
+                         centerX - 160 * scale, height/1.8, 
+                         13 * scale, 100, [
+                            [centerX - 50 * scale, height/1.7, 
+                             centerX - 66 * scale, height/1.7, 
+                             centerX - 106 * scale, height/1.8, 
+                             2 * scale, 40]
                         ]],
-                        [550, 445, 600, 356, 680, 345, 12, 100, [
-                            [578, 400, 648, 409, 661, 426, 3, 80]
+                        [centerX + 50 * scale, height/1.6, 
+                         centerX + 100 * scale, height/2.2, 
+                         centerX + 180 * scale, height/2.2, 
+                         12 * scale, 100, [
+                            [centerX + 78 * scale, height/1.8, 
+                             centerX + 148 * scale, height/1.7, 
+                             centerX + 161 * scale, height/1.7, 
+                             3 * scale, 80]
                         ]],
-                        [539, 281, 537, 248, 534, 217, 3, 40],
-                        [546, 397, 413, 247, 328, 244, 9, 80, [
-                            [427, 286, 383, 253, 371, 205, 2, 40],
-                            [498, 345, 435, 315, 395, 330, 4, 60]
+                        [centerX + 39 * scale, height/2.7, 
+                         centerX + 37 * scale, height/3, 
+                         centerX + 34 * scale, height/3.5, 
+                         3 * scale, 40],
+                        [centerX + 46 * scale, height/1.8, 
+                         centerX - 87 * scale, height/3, 
+                         centerX - 172 * scale, height/3, 
+                         9 * scale, 80, [
+                            [centerX - 73 * scale, height/2.5, 
+                             centerX - 117 * scale, height/3, 
+                             centerX - 129 * scale, height/3.7, 
+                             2 * scale, 40],
+                            [centerX - 2 * scale, height/2.2, 
+                             centerX - 65 * scale, height/2.3, 
+                             centerX - 105 * scale, height/2.2, 
+                             4 * scale, 60]
                         ]],
-                        [546, 357, 608, 252, 678, 221, 6, 100, [
-                            [590, 293, 646, 277, 648, 271, 2, 80]
+                        [centerX + 46 * scale, height/2.1, 
+                         centerX + 108 * scale, height/3, 
+                         centerX + 178 * scale, height/3.4, 
+                         6 * scale, 100, [
+                            [centerX + 90 * scale, height/2.4, 
+                             centerX + 146 * scale, height/2.6, 
+                             centerX + 148 * scale, height/2.7, 
+                             2 * scale, 80]
                         ]]
                     ]]
                 ],
                 bloom: {
-                    num: 700,
-                    width: 1080,
-                    height: 650,
+                    num: isMobile ? 350 : 700, // 移动设备上减少花瓣数量
+                    width: width,
+                    height: height * 0.9,
                 },
                 footer: {
-                    width: 1200,
+                    width: width,
                     height: 5,
-                    speed: 20,
+                    speed: isMobile ? 10 : 20, // 移动设备上降低速度
                 }
             }
 
@@ -289,6 +442,95 @@
 
 
 
+    <!-- 添加移动设备适配样式 -->
+    <style>
+        @media screen and (max-width: 428px) {
+            body {
+                font-size: 16px;
+                margin: 0;
+                padding: 0;
+                overflow-x: hidden;
+            }
+
+            #main {
+                width: 100% !important;
+                height: 100vh !important;
+            }
+
+            #wrap {
+                width: 100% !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                position: relative !important;
+            }
+
+            #text {
+                width: 90% !important;
+                height: auto !important;
+                left: 5% !important;
+                top: 50px !important;
+                position: absolute !important;
+                z-index: 2 !important;
+            }
+
+            #code {
+                font-size: 18px !important;
+                line-height: 1.6 !important;
+                padding: 20px !important;
+                background: rgba(255, 255, 255, 0.85) !important;
+                border-radius: 15px !important;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            .say {
+                font-size: 20px !important;
+                margin-bottom: 15px !important;
+                color: #333 !important;
+                font-weight: 500 !important;
+            }
+
+            #clock-box {
+                width: 90% !important;
+                left: 5% !important;
+                bottom: 30px !important;
+                top: auto !important;
+                position: fixed !important;
+                z-index: 2 !important;
+                background: rgba(255, 255, 255, 0.85) !important;
+                padding: 15px !important;
+                border-radius: 15px !important;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+                text-align: center !important;
+                box-sizing: border-box !important;
+            }
+
+            #clock {
+                margin: 0 auto !important;
+                font-size: 24px !important;
+                text-align: center !important;
+            }
+
+            #canvas {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                z-index: 1 !important;
+            }
+
+            .space {
+                margin-right: 0 !important;
+            }
+
+            #loading {
+                z-index: 9999 !important;
+            }
+        }
+    </style>
 </body>
 
 </html>
